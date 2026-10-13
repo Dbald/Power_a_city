@@ -2,6 +2,12 @@ import { expect, test, type Page } from '@playwright/test';
 
 const dock = (page: Page) => page.locator('#dock');
 
+/** The experiment must fit the classroom board without scrolling the lesson panel. */
+async function expectNoDockScroll(page: Page) {
+  const overflow = await page.locator('.dock-body').evaluate((el) => el.scrollHeight - el.clientHeight);
+  expect(overflow).toBeLessThanOrEqual(1);
+}
+
 async function inspectAllStages(page: Page) {
   for (const name of ['Generation', 'Transmission', 'Substation', 'Distribution', 'Buildings']) {
     await dock(page).getByRole('button', { name: new RegExp(`^${name}`) }).click();
@@ -33,10 +39,11 @@ async function connectRoute(page: Page) {
 
 async function runChallenge(page: Page) {
   const d = dock(page);
-  await expect(d.getByText('Battery energy')).toBeVisible();
+  await expect(d.locator('.readout')).toBeVisible();
   // Daytime: G=4, charge.
   await d.getByRole('button', { name: 'Charge', exact: true }).click();
-  await expect(d.locator('.preview')).toContainText('stored energy would be 2 EU');
+  await expect(d.locator('.preview')).toContainText('battery +2 → 2 EU');
+  await expect(d.locator('.coach')).toContainText('Press Run one interval');
   await expect(d.locator('.stat-value').nth(2)).toHaveText('0 / 6 EU'); // preview changes nothing
   await d.getByRole('button', { name: 'Run one interval' }).click();
   await expect(d.locator('[data-key="run-result"]')).toContainText('Demand met');
@@ -50,13 +57,14 @@ async function runChallenge(page: Page) {
   await expect(d.locator('[data-key="run-result"]')).toContainText('Demand met');
   await expect(d.locator('.stat-value').nth(2)).toHaveText('0 / 6 EU');
 
+  await expectNoDockScroll(page); // the tallest moment: explanation box open
   await d.getByLabel('Your explanation').fill('I charged the battery in daytime and it added 2 PU in the evening.');
   await d.getByRole('button', { name: 'Submit explanation' }).click();
   await expect(d).toContainText('One evening interval completed.');
 
   // Extension: another evening without recharging shows the 2-PU shortfall.
   await d.getByRole('button', { name: 'Run one interval' }).click();
-  await expect(d.locator('[data-key="run-result"]')).toContainText('Demand not fully met · 2 PU short');
+  await expect(d.locator('[data-key="run-result"]')).toContainText('Demand not fully met: 2 PU short');
   await expect(d.locator('[data-key="run-result"]')).toContainText('battery was empty');
 }
 
@@ -69,7 +77,9 @@ test('guided slice: inspect, connect, experiment (3D)', async ({ page }) => {
   await dock(page).getByRole('button', { name: 'Next →' }).click();
   await connectRoute(page);
   await dock(page).getByRole('button', { name: 'Next →' }).click();
+  await expectNoDockScroll(page);
   await runChallenge(page);
+  await expectNoDockScroll(page);
 
   // Reset restores the initial state and clears attempts.
   await dock(page).getByRole('button', { name: 'Reset experiment' }).click();
@@ -119,9 +129,24 @@ test('Explore starts connected with a clean scenario and no score', async ({ pag
   await page.goto('/');
   await page.getByRole('button', { name: 'Explore' }).click();
   await expect(dock(page)).toContainText('Explore · no score');
-  await expect(dock(page).locator('.challenge')).toHaveCount(0);
+  await expect(dock(page).locator('.mission')).toHaveCount(0);
   await dock(page).getByRole('button', { name: 'Run one interval' }).click();
   await expect(dock(page).locator('[data-key="run-result"]')).toContainText('Demand met');
   await page.locator('.hotspots').getByRole('button', { name: 'Battery' }).click();
   await expect(page.locator('#card-title')).toHaveText('Battery');
+});
+
+test.describe('short laptop screen', () => {
+  test.use({ viewport: { width: 1366, height: 768 } });
+  test('the whole experiment fits without scrolling', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Start lesson' }).click();
+    await dock(page).getByRole('button', { name: 'Next →' }).click();
+    for (const [i, c] of ['Generation', 'Transmission', 'Substation', 'Distribution', 'Buildings'].entries()) await place(page, c, i + 1);
+    await dock(page).getByRole('button', { name: 'Check route' }).click();
+    await dock(page).getByRole('button', { name: 'Next →' }).click();
+    await expectNoDockScroll(page);
+    await runChallenge(page);
+    await expectNoDockScroll(page);
+  });
 });

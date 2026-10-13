@@ -22,7 +22,7 @@ export const SLICE_STEPS: LessonStep[] = [
     id: 'experiment',
     label: 'Experiment',
     time: '4:15–7:00',
-    instruction: 'Charge the battery in daytime, then keep the lights on in the evening.',
+    instruction: 'Keep the lights on after sunset.',
     narrationId: 'PAC-08',
   },
 ];

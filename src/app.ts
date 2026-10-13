@@ -36,7 +36,7 @@ import { CityScene, webglAvailable } from './scene/CityScene.ts';
 import { FlatScene } from './scene/FlatScene.ts';
 import { BOOKMARK_FOR, SELECTABLE, type CityView, type ViewState } from './scene/view.ts';
 import { clearAll, defaultPreferences, loadPreferences, savePreferences, type Preferences } from './store.ts';
-import { cardView, connectView, entryView, modelPanel, routeStepView, settingsView, stepHeader } from './ui/panels.ts';
+import { cardView, connectView, entryView, experimentExtras, modelPanel, narrationDetails, routeStepView, settingsView, stepHeader } from './ui/panels.ts';
 
 type Screen = 'entry' | 'learn' | 'explore';
 
@@ -253,7 +253,7 @@ export class App {
         this.step = Math.min(SLICE_STEPS.length - 1, this.step + 1);
         this.selected = null;
         this.view?.setSelected(null);
-        this.view?.frame(this.step === 2 ? 'substation' : 'overview');
+        this.view?.frame(this.step === 2 ? 'experiment' : 'overview');
         focus = 'instruction';
         break;
       case 'step-back':
@@ -448,31 +448,36 @@ export class App {
 
   private learnDock(): string {
     let body = '';
+    let extras = narrationDetails(this.step);
     if (this.step === 0) body = routeStepView(this.visited);
     else if (this.step === 1) body = connectView(this.route, this.lastCheck);
-    else body = modelPanel(this.experimentInput(true));
+    else {
+      body = modelPanel(this.experimentInput(true));
+      extras += experimentExtras(this.experimentInput(true));
+    }
     const nextBlocked = this.step === 1 && !this.connected();
     const last = this.step === SLICE_STEPS.length - 1;
     return `<div class="dock-body">${stepHeader(this.step)}${body}</div>
 <nav class="dock-nav" aria-label="Lesson navigation">
   <button type="button" class="btn secondary" data-action="step-back" data-key="step-back" ${this.step === 0 ? 'disabled' : ''}>← Back</button>
+  ${nextBlocked ? '<span id="next-why" class="small muted">Connect the route to continue.</span>' : ''}
+  <div class="nav-extras">${extras}</div>
   ${
     last
-      ? `<button type="button" class="btn secondary" data-action="restart" data-key="restart">Restart lesson</button>`
+      ? `<button type="button" class="btn secondary" data-action="restart" data-key="restart">Restart</button>`
       : `<button type="button" class="btn primary" data-action="step-next" data-key="step-next" ${nextBlocked ? 'disabled aria-describedby="next-why"' : ''}>Next →</button>`
   }
-  ${nextBlocked ? '<span id="next-why" class="small muted">Connect the route to continue.</span>' : ''}
 </nav>`;
   }
 
   private exploreDock(): string {
     return `<div class="dock-body">
-  <p class="eyebrow">Explore · no score</p>
-  <h2 class="instruction" tabindex="-1" data-key="instruction">Explore the neighborhood</h2>
-  <p>Select any part to learn what it does. Drag to look around; use Reset view to return. Try daytime and evening, and see what the battery can do.</p>
+  <div class="step-row"><h2 class="instruction" tabindex="-1" data-key="instruction">Explore the neighborhood</h2><span class="step-meta">Explore · no score</span></div>
+  <p class="small">Select any part to learn about it. Drag to look around.</p>
   ${modelPanel(this.experimentInput(false))}
 </div>
 <nav class="dock-nav" aria-label="Explore navigation">
+  <div class="nav-extras">${experimentExtras(this.experimentInput(false))}</div>
   <button type="button" class="btn primary" data-action="start-learn" data-key="explore-learn">Start lesson</button>
 </nav>`;
   }

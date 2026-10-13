@@ -18,11 +18,13 @@ const v = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z);
 
 /** Bookmarks are framed for a 16:9 stage; narrower stages pull the camera back (see `fit`). */
 const BOOKMARKS: Record<Bookmark, CamView> = {
-  overview: { position: v(1, 19, 24), target: v(1, 0, 0.5) },
+  overview: { position: v(1.5, 19, 24), target: v(1.5, 0, -1) },
   generation: { position: v(-11, 7, 11), target: v(-15, 2, -1) },
   transmission: { position: v(-6, 9, 15), target: v(-7, 4, -1) },
   substation: { position: v(5, 8, 11), target: v(3.5, 1, -3) },
   street: { position: v(13, 8, 16), target: v(13, 1, 3) },
+  /** Solar, battery and the homes together, so each run's effect is visible. */
+  experiment: { position: v(10.5, 12, 15.5), target: v(10.5, 0, 0) },
 };
 
 /** Where each hotspot label floats, in world space. */
@@ -206,7 +208,7 @@ export class CityScene implements CityView {
   }
 
   private buildWorld(): THREE.Mesh {
-    const ground = new THREE.Mesh(new THREE.PlaneGeometry(70, 40), this.mat('#8fbf73'));
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(160, 120), this.mat('#8fbf73'));
     ground.rotation.x = -Math.PI / 2;
     this.scene.add(ground);
     const street = this.box(21, 0.04, 2, '#5d6470', 12.5, 0.02, 3.8);
@@ -486,6 +488,8 @@ export class CityScene implements CityView {
     this.clock.update();
     const dt = Math.min(0.1, this.clock.getDelta());
     if (this.camT < 1) {
+      // Re-fit every frame: the stage can change shape mid-move (e.g. the lesson panel opening on Start).
+      this.camTo = this.fit(BOOKMARKS[this.bookmark]);
       this.camT = Math.min(1, this.camT + dt / 1.1);
       const t = this.camT < 0.5 ? 2 * this.camT * this.camT : 1 - (-2 * this.camT + 2) ** 2 / 2;
       this.applyCamera({

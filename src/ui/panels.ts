@@ -4,16 +4,15 @@
  */
 import { card } from '../content/cards.ts';
 import { MODEL_LIMITS, intervalFeedback, routeFeedback } from '../content/feedback.ts';
+import { coach, type Mission } from '../content/coach.ts';
 import { GLOSSARY, MEDIA, OBJECTIVE, SLICE_STEPS } from '../content/lesson.ts';
 import { SOURCES } from '../content/sources.ts';
 import type { InfrastructureId } from '../content/types.ts';
 import {
   BATTERY_CAPACITY,
   BATTERY_RATE,
-  DEMAND,
   GENERATOR_MAX,
   GENERATOR_MIN,
-  SOLAR,
   challengeStatus,
   preview,
   type IntervalResult,
@@ -58,11 +57,15 @@ export function stepHeader(step: number): string {
   const dots = SLICE_STEPS.map(
     (x, i) => `<li class="${i === step ? 'is-current' : i < step ? 'is-done' : ''}" ${i === step ? 'aria-current="step"' : ''}>${esc(x.label)}</li>`,
   ).join('');
-  const narration = s.narrationId ? MEDIA.find((m) => m.id === s.narrationId) : undefined;
-  return `<ol class="steps" aria-label="Lesson steps">${dots}</ol>
-<p class="eyebrow">Step ${step + 1} of ${SLICE_STEPS.length} · target ${esc(s.time)}</p>
-<h2 class="instruction" tabindex="-1" data-key="instruction">${esc(s.instruction)}</h2>
-${narration ? `<p class="script small"><span class="tag">Narration script ${esc(narration.id)} · not recorded</span> ${esc(narration.transcript)}</p>` : ''}`;
+  return `<div class="step-row"><ol class="steps" aria-label="Lesson steps">${dots}</ol><span class="step-meta">Step ${step + 1} of ${SLICE_STEPS.length} · target ${esc(s.time)}</span></div>
+<h2 class="instruction" tabindex="-1" data-key="instruction">${esc(s.instruction)}</h2>`;
+}
+
+/** Teacher-facing draft narration, kept folded away at the foot of the panel. */
+export function narrationDetails(step: number): string {
+  const id = SLICE_STEPS[step].narrationId;
+  const n = id ? MEDIA.find((m) => m.id === id) : undefined;
+  return n ? `<details class="pop"><summary>Script ${esc(n.id)}</summary><div class="pop-body"><p class="script-text">${esc(n.transcript)}</p><p class="small muted">Draft narration — not recorded yet.</p></div></details>` : '';
 }
 
 export function routeStepView(visited: InfrastructureId[]): string {
@@ -131,20 +134,10 @@ ${feedback}
 ${route.connected ? '' : '<p class="small muted">Real grids have many connected paths. This single route is a simplified picture.</p>'}`;
 }
 
-function stat(label: string, value: string, note = '') {
-  return `<div class="stat"><span class="stat-label">${esc(label)}</span><span class="stat-value">${value}</span>${note ? `<span class="stat-note">${esc(note)}</span>` : ''}</div>`;
-}
-
-function resultLine(r: IntervalResult) {
-  return r.unmet === 0
-    ? `<span class="badge good"><span aria-hidden="true">✓ </span>Demand met</span>`
-    : `<span class="badge short"><span aria-hidden="true">! </span>Demand not fully met · ${r.unmet} PU short</span>`;
-}
-
-function batteryLine(r: IntervalResult) {
-  if (r.charge > 0) return `+${r.charge} charging`;
-  if (r.discharge > 0) return `−${r.discharge} supplying`;
-  return 'no change';
+function batteryChange(r: IntervalResult) {
+  if (r.charge > 0) return `battery +${r.charge} → ${r.storedAfter} EU`;
+  if (r.discharge > 0) return `battery −${r.discharge} → ${r.storedAfter} EU`;
+  return `battery stays ${r.storedAfter} EU`;
 }
 
 export interface ModelPanelInput {
@@ -158,6 +151,43 @@ export interface ModelPanelInput {
   error: string | null;
 }
 
+const MISSIONS: { id: Mission; label: string }[] = [
+  { id: 'charge', label: '☀ Charge by day' },
+  { id: 'evening', label: '☾ Light the evening' },
+  { id: 'explain', label: '✎ Explain' },
+];
+
+function missionBar(m: ModelPanelInput): string {
+  const c = coach(m.scenario, m.settings, m.explanationSubmitted, m.explanation);
+  const order: Mission[] = ['charge', 'evening', 'explain', 'done'];
+  const at = order.indexOf(c.mission);
+  // Progress never moves backwards on screen once a mission has been met.
+  const st = challengeStatus(m.scenario, m.explanationSubmitted ? m.explanation : '');
+  const done = [st.dayPrepared, st.eveningServed, st.passed];
+  const items = MISSIONS.map((x, i) => {
+    const cls = done[i] ? 'is-done' : order.indexOf(x.id) === at ? 'is-current' : '';
+    return `<li class="${cls}" ${cls === 'is-current' ? 'aria-current="step"' : ''}>${esc(x.label)}${done[i] ? '<span class="sr-only"> (done)</span>' : ''}</li>`;
+  }).join('');
+  const explain =
+    st.eveningServed && !m.explanationSubmitted
+      ? `<label for="explanation" class="coach"><span class="sr-only">Your explanation: </span><span aria-hidden="true">→ </span>${esc(c.hint)}</label>
+<div class="explain-row">
+  <textarea id="explanation" rows="2" placeholder="I changed… and I saw…" data-input="explanation" data-key="explanation">${esc(m.explanation)}</textarea>
+  ${btn('Submit', 'submit-explanation', { cls: 'secondary', key: 'submit-explanation', aria: 'Submit explanation' })}
+</div>`
+      : '';
+  const line = st.passed
+    ? `<p class="coach is-done" role="status"><strong>One evening interval completed.</strong> ${esc(c.hint)}</p>`
+    : explain
+      ? ''
+      : `<p class="coach" role="status"><span aria-hidden="true">→ </span>${esc(c.hint)}</p>`;
+  return `<div class="mission">
+  <ol class="missions" aria-label="Challenge">${items}</ol>
+  ${line}
+  ${explain}
+</div>`;
+}
+
 export function modelPanel(m: ModelPanelInput): string {
   if (!m.connected) {
     return `<div class="notice" role="status">The neighborhood isn't connected yet. Complete the delivery route first — nothing is delivered or stored until it is.</div>`;
@@ -167,87 +197,59 @@ export function modelPanel(m: ModelPanelInput): string {
   const evening = s.period === 'evening';
   const seg = (label: string, action: string, arg: string, pressed: boolean) => btn(label, action, { arg, pressed, cls: pressed ? 'is-selected' : '', key: `${action}:${arg}` });
 
-  const controls = `<fieldset class="control">
-  <legend>Time of day</legend>
-  <div class="row tight">${seg('☀ Daytime', 'period', 'day', !evening)}${seg('☾ Evening', 'period', 'evening', evening)}</div>
-</fieldset>
-<fieldset class="control">
-  <legend><label for="generator">Generator output (power plant)</label></legend>
+  const controls = `<div class="controls">
+  <span class="ctl-label" id="lbl-time">Time</span>
+  <div class="row tight" role="group" aria-labelledby="lbl-time">${seg('☀ Daytime', 'period', 'day', !evening)}${seg('☾ Evening', 'period', 'evening', evening)}</div>
+  <label class="ctl-label" for="generator">Generator</label>
   <div class="row tight slider-row">
     ${btn('Less', 'gen-dec', { cls: 'icon-btn', icon: '−', aria: 'Decrease generator output', key: 'gen-dec', disabled: s.generator <= GENERATOR_MIN })}
     <input id="generator" type="range" min="${GENERATOR_MIN}" max="${GENERATOR_MAX}" step="1" value="${s.generator}" data-input="generator" data-key="generator" aria-valuetext="${s.generator} power units">
     ${btn('More', 'gen-inc', { cls: 'icon-btn', icon: '+', aria: 'Increase generator output', key: 'gen-inc', disabled: s.generator >= GENERATOR_MAX })}
     <output for="generator" class="big-num">${s.generator} PU</output>
   </div>
-</fieldset>
-<fieldset class="control">
-  <legend>Battery</legend>
-  <div class="row tight">${seg('Idle', 'battery', 'idle', s.battery === 'idle')}${seg('Charge', 'battery', 'charge', s.battery === 'charge')}${seg('Discharge', 'battery', 'discharge', s.battery === 'discharge')}</div>
-  <p class="small muted">Charges or discharges up to ${BATTERY_RATE} PU per interval. Holds up to ${BATTERY_CAPACITY} EU.</p>
-</fieldset>`;
-
-  const stats = `<div class="stats" aria-label="Neighborhood status">
-  ${stat('Available supply', `${p.available} PU`, `generator ${p.generator} + solar ${p.solar}${evening ? ' (no sun)' : ''}`)}
-  ${stat('Demand', `${p.demand} PU`, evening ? 'evening' : 'daytime')}
-  ${stat('Battery energy', `${m.scenario.stored} / ${BATTERY_CAPACITY} EU`, m.scenario.stored === 0 ? 'empty' : m.scenario.stored === BATTERY_CAPACITY ? 'full' : 'stored')}
+  <span class="ctl-label" id="lbl-battery">Battery</span>
+  <div class="row tight" role="group" aria-labelledby="lbl-battery">${seg('Idle', 'battery', 'idle', s.battery === 'idle')}${seg('Charge', 'battery', 'charge', s.battery === 'charge')}${seg('Discharge', 'battery', 'discharge', s.battery === 'discharge')}</div>
 </div>`;
 
-  const previewBox = `<div class="preview" aria-live="polite">
-  <p class="eyebrow">Preview of the next interval — nothing has happened yet</p>
-  <p>${resultLine(p)} · battery ${batteryLine(p)} · stored energy would be <strong>${p.storedAfter} EU</strong>${p.unused ? ` · ${p.unused} PU not used` : ''}</p>
+  const fill = Math.round((100 * m.scenario.stored) / BATTERY_CAPACITY);
+  const readout = `<div class="readout">
+  <div class="stats" aria-label="Neighborhood status">
+    <div class="stat"><span class="stat-label">Supply</span><span class="stat-value">${p.available} PU</span><span class="stat-note">plant ${p.generator} + sun ${p.solar}</span></div>
+    <div class="stat"><span class="stat-label">Demand</span><span class="stat-value">${p.demand} PU</span><span class="stat-note">${evening ? 'evening' : 'daytime'}</span></div>
+    <div class="stat"><span class="stat-label">Battery</span><span class="stat-value">${m.scenario.stored} / ${BATTERY_CAPACITY} EU</span><span class="meter" aria-hidden="true"><span style="width:${fill}%"></span></span></div>
+  </div>
+  <p class="preview" aria-live="polite"><span class="preview-label">If you run:</span> ${p.unmet === 0 ? '<span class="badge good"><span aria-hidden="true">✓ </span>Demand met</span>' : `<span class="badge short"><span aria-hidden="true">! </span>${p.unmet} PU short</span>`} <span class="muted">· ${batteryChange(p)}${p.unused ? ` · ${p.unused} PU unused` : ''}</span></p>
 </div>`;
 
   const lastHtml = m.last
-    ? `<div class="feedback ${m.last.unmet === 0 ? 'good' : 'retry'}" role="status" tabindex="-1" data-key="run-result">
-  <p class="eyebrow">Interval ${m.scenario.attempts.length} result · ${m.last.settings.period === 'day' ? 'daytime' : 'evening'}</p>
-  <p>${resultLine(m.last)}</p>
-  <p>${esc(intervalFeedback(m.last))}</p>
-</div>`
+    ? `<p class="result ${m.last.unmet === 0 ? 'good' : 'retry'}" role="status" tabindex="-1" data-key="run-result"><strong>Run ${m.scenario.attempts.length} (${m.last.settings.period === 'day' ? 'daytime' : 'evening'}):</strong> ${esc(intervalFeedback(m.last))}</p>`
     : '';
 
+
+
+  return `${m.guided ? missionBar(m) : ''}
+${controls}
+${readout}
+${m.error ? `<p class="result retry" role="alert">${esc(m.error)}</p>` : ''}
+<div class="row run-row">
+  ${btn('Run one interval', 'run', { cls: 'primary big', key: 'run' })}
+  ${btn('Reset', 'reset-experiment', { cls: 'secondary', key: 'reset-experiment', aria: 'Reset experiment' })}
+</div>
+${lastHtml}`;
+}
+
+/** Secondary details for the panel's bottom bar: they open as pop-overs so the main task never scrolls. */
+export function experimentExtras(m: { scenario: Scenario; connected: boolean }): string {
+  if (!m.connected) return '';
   const history = m.scenario.attempts.length
-    ? `<details class="history"><summary>Intervals run (${m.scenario.attempts.length})</summary><table><thead><tr><th scope="col">#</th><th scope="col">Time</th><th scope="col">Generator</th><th scope="col">Battery</th><th scope="col">Served / demand</th><th scope="col">Stored after</th></tr></thead><tbody>${m.scenario.attempts
+    ? `<details class="pop"><summary>Runs (${m.scenario.attempts.length})</summary><div class="pop-body"><table><thead><tr><th scope="col">#</th><th scope="col">Time</th><th scope="col">Plant</th><th scope="col">Battery</th><th scope="col">Served</th><th scope="col">Stored</th></tr></thead><tbody>${m.scenario.attempts
         .map(
           ({ index, result: r }) =>
             `<tr><td>${index}</td><td>${r.settings.period === 'day' ? 'Day' : 'Evening'}</td><td>${r.generator} PU</td><td>${r.settings.battery}</td><td>${r.served} / ${r.demand} PU</td><td>${r.storedAfter} EU</td></tr>`,
         )
-        .join('')}</tbody></table></details>`
+        .join('')}</tbody></table></div></details>`
     : '';
-
-  let challenge = '';
-  if (m.guided) {
-    const st = challengeStatus(m.scenario, m.explanationSubmitted ? m.explanation : '');
-    const item = (done: boolean, text: string) => `<li class="${done ? 'is-done' : ''}"><span aria-hidden="true">${done ? '✓' : '○'}</span> ${esc(text)}${done ? '<span class="sr-only"> (done)</span>' : ''}</li>`;
-    challenge = `<div class="challenge">
-  <p class="eyebrow">Challenge</p>
-  <ul class="checklist">
-    ${item(st.dayPrepared, `Daytime: meet demand (${DEMAND.day} PU) and store energy`)}
-    ${item(st.eveningServed, `Evening: meet demand (${DEMAND.evening} PU) with solar at ${SOLAR.evening} PU`)}
-    ${item(st.explanationSubmitted, 'Explain what you changed and what showed it worked')}
-  </ul>
-  ${
-    st.eveningServed
-      ? `<label for="explanation" class="eyebrow">Your explanation</label>
-  <textarea id="explanation" rows="3" data-input="explanation" data-key="explanation" ${m.explanationSubmitted ? 'readonly' : ''}>${esc(m.explanation)}</textarea>
-  ${m.explanationSubmitted ? '' : btn('Submit explanation', 'submit-explanation', { cls: 'secondary', key: 'submit-explanation' })}`
-      : ''
-  }
-  ${st.passed ? `<div class="feedback good" role="status"><strong>One evening interval completed.</strong> Try one more evening without recharging — what happens to the battery?</div>` : ''}
-</div>`;
-  }
-
-  return `${controls}
-${stats}
-${previewBox}
-${m.error ? `<p class="feedback retry" role="alert">${esc(m.error)}</p>` : ''}
-<div class="row">
-  ${btn('Run one interval', 'run', { cls: 'primary big', key: 'run' })}
-  ${btn('Reset experiment', 'reset-experiment', { cls: 'secondary', key: 'reset-experiment' })}
-</div>
-${lastHtml}
-${challenge}
-${history}
-<details class="limits"><summary>About this model</summary><p class="small">${esc(MODEL_LIMITS)}</p><p class="small"><strong>${esc(GLOSSARY[6].term)}:</strong> ${esc(GLOSSARY[6].definition)}</p></details>`;
+  return `${history}<details class="pop"><summary>About the model</summary><div class="pop-body"><p class="small">${esc(MODEL_LIMITS)} The battery charges or discharges at most ${BATTERY_RATE} PU per run.</p><p class="small"><strong>${esc(GLOSSARY[6].term)}:</strong> ${esc(GLOSSARY[6].definition)}</p></div></details>`;
 }
 
 export function settingsView(p: Preferences, webgl: boolean): string {

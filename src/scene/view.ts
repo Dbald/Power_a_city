@@ -6,7 +6,7 @@
 import type { InfrastructureId } from '../content/types.ts';
 import type { BatteryMode, Period } from '../model/grid.ts';
 
-export type Bookmark = 'overview' | 'generation' | 'transmission' | 'substation' | 'street';
+export type Bookmark = 'overview' | 'generation' | 'transmission' | 'substation' | 'street' | 'experiment';
 
 /** Which camera bookmark frames each selectable part. */
 export const BOOKMARK_FOR: Record<InfrastructureId, Bookmark> = {
