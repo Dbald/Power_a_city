@@ -30,13 +30,3 @@ export function btn(
   const icon = opts.icon ? `<span class="btn-icon" aria-hidden="true">${opts.icon}</span>` : '';
   return `<button ${attrs}>${icon}<span>${esc(label)}</span></button>`;
 }
-
-/** A food relationship drawn as an arrow from food to consumer. */
-export function foodArrow(food: string, consumer: string): string {
-  return `<span class="food-arrow"><span class="chip">${esc(food)}</span><span class="arrow" aria-hidden="true">→</span><span class="sr-only"> gives energy to </span><span class="chip">${esc(consumer)}</span></span>`;
-}
-
-/** A shelter relationship, drawn differently from feeding. */
-export function shelterLink(shelter: string, user: string): string {
-  return `<span class="shelter-link"><span class="chip">${esc(shelter)}</span><span class="dash" aria-hidden="true">⋯⌂⋯</span><span class="sr-only"> gives shelter to </span><span class="chip">${esc(user)}</span></span>`;
-}
