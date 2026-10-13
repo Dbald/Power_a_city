@@ -1,0 +1,33 @@
+{
+  "name": "power-a-city",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Power a City — From Source to Streetlight. A teacher-led browser lesson about how electricity reaches a neighborhood and what keeps it available.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "validate:content": "node scripts/validate-content.ts",
+    "release-check": "node scripts/validate-content.ts --release"
+  },
+  "dependencies": {
+    "three": "^0.186.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^26.6.4",
+    "@types/three": "^0.186.0",
+    "@vitejs/plugin-legacy": "^8.2.3",
+    "terser": "^5.51.2",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.2",
+    "vitest": "^5.0.3"
+  },
+  "engines": {
+    "node": ">=22.18"
+  }
+}
