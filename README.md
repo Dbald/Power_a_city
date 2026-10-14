@@ -6,7 +6,7 @@ A teacher-led browser lesson about how electricity gets from its source to a nei
 
 ## Status: milestone 2 vertical slice
 
-This is the PRD's first coding task (§13): placeholder geometry, the five-stage connection exercise, and a UI panel driven by the pure model.
+This started as the PRD's first coding task (§13): the five-stage connection exercise and a UI panel driven by the pure model, since extended with a fuller 3D neighborhood, narration, and the guided experiment.
 
 | Area | State |
 |---|---|
@@ -16,7 +16,8 @@ This is the PRD's first coding task (§13): placeholder geometry, the five-stage
 | Infrastructure cards (PC-02) | 7 cards (5 stages plus solar and battery). Each has sources and is marked *draft*. |
 | Connection exercise (PC-03) | Drag cards into the steps (mouse, touch or pen), swap between steps, drag back to the tray; tap-a-card-then-a-step and keyboard still work. Wrong orders get explanations and a retry. |
 | Experiment (PC-06/07) | Opens with a "Two kinds of numbers" card that explains PU (power, like water from a tap) and EU (stored energy, like water in a bucket) before any number appears; the explainer stays one click away. then a "Your challenge" briefing (why evenings are hard, the goal, what each control does). Mission tracker (charge by day → light the evening → explain) with a next-move hint that says why and makes the matching control glow — tested to reach the goal from every starting setting; separate settings, preview and Run; cause-based feedback. Fits the panel without scrolling down to 1366×768. |
-| 3D scene | three.js placeholder neighborhood with camera bookmarks, picking, limited orbit in Explore, and Reset view |
+| 3D scene | three.js neighborhood: lattice towers with sagging wires, a gas plant with steam, a fenced substation with transformers, solar farm, battery containers, wooden poles, houses, a school and a shop. Textures are painted in code (project-owned, no licences). Day and evening skies, lit windows and streetlights, plus traffic, birds, clouds and swaying trees (all paused by reduced motion). Camera bookmarks, picking, limited orbit in Explore, and Reset view. Add `?stats` to the URL to log draw calls and frame rate. |
+| Real photos | Each info card can show a credited, licensed real photo. None are bundled yet; see [`docs/photos.md`](docs/photos.md) for which to use and how to add them. |
 | 2D presentation (PC-11) | SVG map driven by the same `ViewState` and model. Used automatically when WebGL is missing or fails. |
 | Narration (PC-09) | Each step and card has a line; captions with Listen/Pause, Replay, Stop, Mute; recorded clips play when present, otherwise the browser voice. Record lines in your own voice at `#record` (or Settings → Record narration) — see [`docs/narration.md`](docs/narration.md). |
 | Preferences (PC-12) | Text size, 2D/3D, reduced motion, and flow overlay. Saved locally. Clear session. |

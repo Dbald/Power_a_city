@@ -1,3 +1,5 @@
+import { photoFor, photoSrc, type ReferencePhoto } from '../content/photos.ts';
+
 /** Escapes text for safe interpolation into HTML templates. */
 export function esc(value: unknown): string {
   return String(value ?? '')
@@ -30,4 +32,17 @@ export function btn(
     .join(' ');
   const icon = opts.icon ? `<span class="btn-icon" aria-hidden="true">${opts.icon}</span>` : '';
   return `<button ${attrs}>${icon}<span>${esc(label)}</span></button>`;
+}
+
+/**
+ * A real reference photo with its credit and licence, or nothing if the subject has none.
+ * It sits inside a panel, never over the scene; if the file fails to load it hides itself.
+ */
+export function refPhoto(subject: string, opts: { caption?: string; list?: ReferencePhoto[] } = {}): string {
+  const p = photoFor(subject, opts.list);
+  if (!p) return '';
+  return `<figure class="ref-photo" data-photo="${esc(subject)}">
+  <div class="ref-photo-frame"><img src="${esc(photoSrc(p))}" alt="${esc(p.alt)}" decoding="async" onerror="this.closest('figure').hidden=true"><span class="ref-badge">Real photo</span></div>
+  <figcaption>${opts.caption ? `<span>${esc(opts.caption)}</span> ` : ''}<span class="ref-credit">${esc(p.credit)} · <a href="${esc(p.sourceUrl)}" target="_blank" rel="noopener">${esc(p.license)}</a></span></figcaption>
+</figure>`;
 }

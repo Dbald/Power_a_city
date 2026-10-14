@@ -59,9 +59,18 @@ export class FlatScene implements CityView {
     return `<svg viewBox="0 0 1600 900" role="img" aria-labelledby="flat-title flat-desc">
   <title id="flat-title">Neighborhood map</title>
   <desc id="flat-desc">From left to right: a power plant, two transmission towers, a fenced substation with solar panels and a battery below it, then street poles leading to three homes, a school, a shop and streetlights.</desc>
+  <defs>
+    <linearGradient id="sky-day" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3f8fd8"/><stop offset="1" stop-color="#d9ecf6"/></linearGradient>
+    <linearGradient id="sky-eve" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0b1230"/><stop offset="0.6" stop-color="#4a3566"/><stop offset="1" stop-color="#e2834f"/></linearGradient>
+  </defs>
   <rect class="sky" width="1600" height="900"/>
-  <rect y="470" width="1600" height="430" fill="#8fbf73"/>
-  <rect x="860" y="640" width="720" height="70" fill="#5d6470"/>
+  <g class="stars" fill="#fff">${Array.from({ length: 40 }, (_, i) => `<circle cx="${(i * 397) % 1600}" cy="${20 + ((i * 131) % 300)}" r="${1 + (i % 3) * 0.6}"/>`).join('')}</g>
+  <circle class="sun" cx="1450" cy="110" r="46" fill="#fff3c4"/>
+  <circle class="moon" cx="1450" cy="110" r="30" fill="#eef1ff"/>
+  <g class="clouds" fill="#fff" opacity="0.9">${[[200, 120], [700, 80], [1150, 150]].map(([x, y]) => `<g transform="translate(${x} ${y})"><ellipse rx="70" ry="24"/><ellipse cx="-40" cy="8" rx="40" ry="18"/><ellipse cx="45" cy="6" rx="45" ry="20"/></g>`).join('')}</g>
+  <g class="steam" fill="#f2f2f2">${[0, 1, 2].map((i) => `<circle cx="93" cy="${250 - i * 34}" r="${12 + i * 6}" style="animation-delay:${i * 1}s"/>`).join('')}</g>
+  <rect class="ground" y="470" width="1600" height="430"/>
+  <rect class="road" x="860" y="640" width="720" height="70"/>
   <g><rect x="60" y="370" width="130" height="100" fill="#c9c3b8" stroke="#333" stroke-width="3"/><rect x="80" y="280" width="26" height="90" fill="#a49d92" stroke="#333" stroke-width="3"/><rect x="230" y="420" width="44" height="50" fill="#7b8794" stroke="#333" stroke-width="3"/></g>
   <g stroke="#9aa3ad" stroke-width="8"><path d="M 320 470 L 340 220 L 360 470" fill="none"/><path d="M 540 470 L 560 220 L 580 470" fill="none"/><line x1="300" y1="230" x2="380" y2="230"/><line x1="520" y1="230" x2="600" y2="230"/></g>
   <g><rect x="690" y="400" width="140" height="80" fill="#b5b0a3" stroke="#8d969e" stroke-width="6" stroke-dasharray="10 6"/><rect x="710" y="420" width="40" height="44" fill="#6f7c88"/><rect x="770" y="420" width="40" height="44" fill="#6f7c88"/></g>
@@ -72,6 +81,9 @@ export class FlatScene implements CityView {
   <g class="flow" fill="none" stroke-width="5" stroke-dasharray="4 26" stroke-linecap="round">${ROUTE.slice(0, 3).map((d) => `<path d="${d}"/>`).join('')}</g>
   <g><rect x="1110" y="160" width="230" height="100" fill="#d9a066" stroke="#333" stroke-width="3"/>${[0, 1, 2, 3].map((i) => `<rect class="win" x="${1130 + i * 52}" y="190" width="30" height="30"/>`).join('')}</g>
   <g><rect x="1400" y="180" width="150" height="80" fill="#9cc59a" stroke="#333" stroke-width="3"/><rect x="1395" y="170" width="160" height="16" fill="#c0504d"/><rect class="win" x="1420" y="205" width="40" height="30"/><rect class="win" x="1490" y="205" width="40" height="30"/></g>
+  <g class="trees">${[[40, 520], [470, 520], [640, 500], [1000, 520], [1570, 520], [1180, 790], [1500, 790], [330, 760], [880, 790]]
+    .map(([x, y]) => `<g transform="translate(${x} ${y})"><rect x="-5" y="-6" width="10" height="26" fill="#6b4a32"/><circle cy="-26" r="26" fill="#4f7f3a"/><circle cx="-14" cy="-14" r="18" fill="#5f8f42"/><circle cx="14" cy="-14" r="18" fill="#3f6e34"/></g>`)
+    .join('')}</g>
   ${houses}
   ${lamps}
 </svg>`;

@@ -23,7 +23,7 @@ import {
 } from '../model/grid.ts';
 import { ROUTE_ORDER, trayCards, type CheckResult, type RouteState } from '../model/route.ts';
 import type { Preferences } from '../store.ts';
-import { btn, esc } from './html.ts';
+import { btn, esc, refPhoto } from './html.ts';
 
 export function entryView(): string {
   return `<div class="entry-box">
@@ -47,6 +47,7 @@ export function cardView(id: InfrastructureId, inLesson: boolean): string {
   <h2 id="card-title" tabindex="-1" data-key="card-title">${esc(c.title)}</h2>
   ${btn('Close', 'close-card', { cls: 'icon-btn ghost', icon: '✕', aria: `Close ${c.title} card`, key: 'close-card' })}
 </div>
+${refPhoto(id, { caption: `A real ${c.title.toLowerCase()} site.` })}
 <p class="lead">${esc(c.role)}</p>
 ${c.transformer ? `<p class="transformer"><span class="tag">Transformer</span> ${esc(c.transformer)}</p>` : ''}
 <p class="observe"><span class="tag">Look for</span> ${esc(c.observe)}</p>

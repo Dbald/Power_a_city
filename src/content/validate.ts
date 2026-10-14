@@ -2,6 +2,7 @@
  * Content checks. Development mode accepts drafts; release mode (PRD §14)
  * requires every claim-bearing record and narration script to be reviewed.
  */
+import { ASSETS } from './assets.ts';
 import { CARDS } from './cards.ts';
 import { MEDIA } from './lesson.ts';
 import { SOURCES } from './sources.ts';
@@ -35,6 +36,9 @@ export function validateContent(release = false): string[] {
   for (const m of MEDIA) {
     if (!m.transcript.trim()) problems.push(`${m.id}: missing transcript.`);
     problems.push(...reviewProblems(`media ${m.id}`, m.review, release));
+  }
+  for (const a of ASSETS) {
+    for (const [field, val] of Object.entries(a)) if (!String(val).trim()) problems.push(`asset ${a.id}: missing ${field}.`);
   }
   return problems;
 }

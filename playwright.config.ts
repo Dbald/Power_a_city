@@ -5,7 +5,8 @@ const executablePath = process.env.CHROMIUM_PATH || undefined;
 
 export default defineConfig({
   testDir: 'tests/e2e',
-  timeout: 60_000,
+  // CI machines have no GPU: the 3D scene renders in software, so full-lesson walkthroughs need longer.
+  timeout: 150_000,
   fullyParallel: true,
   reporter: process.env.CI ? 'github' : 'list',
   use: {
