@@ -14,13 +14,14 @@ This is the PRD's first coding task (§13): placeholder geometry, the five-stage
 | Opening screen | Start lesson, Explore, and accessibility settings |
 | Guided slice | Explore the route → Connect → Experiment, with Back/Next and restart |
 | Infrastructure cards (PC-02) | 7 cards (5 stages plus solar and battery). Each has sources and is marked *draft*. |
-| Connection exercise (PC-03) | Select a card, then select a slot; no dragging. Wrong orders get explanations and a retry. |
+| Connection exercise (PC-03) | Drag cards into the steps (mouse, touch or pen), swap between steps, drag back to the tray; tap-a-card-then-a-step and keyboard still work. Wrong orders get explanations and a retry. |
 | Experiment (PC-06/07) | Opens with a "Two kinds of numbers" card that explains PU (power, like water from a tap) and EU (stored energy, like water in a bucket) before any number appears; the explainer stays one click away. Mission tracker (charge by day → light the evening → explain) with a next-move hint; separate settings, preview and Run; cause-based feedback. Fits the panel without scrolling down to 1366×768. |
 | 3D scene | three.js placeholder neighborhood with camera bookmarks, picking, limited orbit in Explore, and Reset view |
 | 2D presentation (PC-11) | SVG map driven by the same `ViewState` and model. Used automatically when WebGL is missing or fails. |
+| Narration (PC-09) | Each step and card has a line; captions with Listen/Pause, Replay, Stop, Mute; recorded clips play when present, otherwise the browser voice. Record lines in your own voice at `#record` (or Settings → Record narration) — see [`docs/narration.md`](docs/narration.md). |
 | Preferences (PC-12) | Text size, 2D/3D, reduced motion, and flow overlay. Saved locally. Clear session. |
 
-Not built yet (milestones 3–6): the prediction step, the three exit questions and rubric, the printable teacher guide, recorded narration and presenter media (the draft scripts for PAC-01…09 appear as text), and classroom validation.
+Not built yet (milestones 3–6): the prediction step, the three exit questions and rubric, the printable teacher guide, the recorded narration files themselves and presenter video, and classroom validation.
 
 ## Run it
 

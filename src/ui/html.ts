@@ -12,7 +12,7 @@ export function esc(value: unknown): string {
 export function btn(
   label: string,
   action: string,
-  opts: { arg?: string; cls?: string; key?: string; pressed?: boolean; current?: boolean; disabled?: boolean; aria?: string; icon?: string } = {},
+  opts: { arg?: string; cls?: string; key?: string; pressed?: boolean; current?: boolean; disabled?: boolean; aria?: string; icon?: string; data?: Record<string, string> } = {},
 ): string {
   const attrs = [
     `type="button"`,
@@ -24,6 +24,7 @@ export function btn(
     opts.current ? 'aria-current="step"' : '',
     opts.disabled ? 'disabled' : '',
     opts.aria ? `aria-label="${esc(opts.aria)}"` : '',
+    ...Object.entries(opts.data ?? {}).map(([k, v]) => `data-${k}="${esc(v)}"`),
   ]
     .filter(Boolean)
     .join(' ');

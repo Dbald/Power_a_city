@@ -164,3 +164,62 @@ test.describe('short laptop screen', () => {
     await expectNoDockScroll(page);
   });
 });
+
+test('cards can be dragged into the route, swapped, and dragged back', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Start lesson' }).click();
+  await dock(page).getByRole('button', { name: 'Next →' }).click();
+  const tray = dock(page).getByRole('group', { name: 'Stage cards' });
+  const step = (n: number) => dock(page).getByRole('button', { name: new RegExp(`^Step ${n}:`) });
+
+  // Drag two cards into the wrong steps, swap them by dragging, then drag one back to the tray.
+  await tray.getByRole('button', { name: 'Transmission', exact: true }).dragTo(step(3));
+  await tray.getByRole('button', { name: 'Substation', exact: true }).dragTo(step(2));
+  await expect(step(2)).toHaveAccessibleName(/Step 2: Substation/);
+  await step(2).dragTo(step(3));
+  await expect(step(2)).toHaveAccessibleName(/Step 2: Transmission/);
+  await expect(step(3)).toHaveAccessibleName(/Step 3: Substation/);
+  await step(3).dragTo(tray);
+  await expect(step(3)).toHaveAccessibleName(/Step 3: empty/);
+
+  for (const [i, c] of ['Generation', 'Substation', 'Distribution', 'Buildings'].entries()) {
+    await tray.getByRole('button', { name: c, exact: true }).dragTo(step([1, 3, 4, 5][i]));
+  }
+  await dock(page).getByRole('button', { name: 'Check route' }).click();
+  await expect(dock(page).locator('.feedback.good')).toContainText('Connected!');
+});
+
+test('narration follows the lesson: step line, card line, stop, and no overlap', async ({ page }) => {
+  await page.goto('/');
+  const bar = page.locator('#caption-bar');
+  await expect(bar).toBeHidden(); // nothing plays before the class starts
+  await page.getByRole('button', { name: 'Start lesson' }).click();
+  await expect(bar).toBeVisible();
+  await expect(page.locator('#caption')).toContainText('Flip a switch');
+  await dock(page).getByRole('button', { name: /^Substation/ }).click();
+  await expect(page.locator('#caption')).toContainText('transformers lower the voltage');
+  await page.getByRole('button', { name: 'Stop narration' }).click();
+  await expect(page.locator('#caption')).toHaveText('Narration: Substation');
+  await page.getByRole('button', { name: 'Listen' }).click();
+  await expect(page.locator('#caption')).toContainText('At the substation');
+  await page.keyboard.press('Escape'); // closing the card stops its line without replaying the step's
+  await expect(page.locator('#caption')).toHaveText('Narration: Welcome');
+});
+
+test('the recording page records, plays back and names files for every line', async ({ page }) => {
+  await page.goto('/#record');
+  const rec = page.locator('#recorder');
+  await expect(rec.getByRole('heading', { name: 'Record your narration' })).toBeVisible();
+  await expect(rec.locator('.rec-line')).toHaveCount(10);
+  await expect(rec.locator('.rec-line').first()).toContainText('Flip a switch and the light comes on.');
+  await rec.locator('[data-rec="record"][data-id="PAC-01"]').click();
+  await expect(rec.getByText('Recording…')).toBeVisible();
+  await page.waitForTimeout(700);
+  await rec.locator('[data-rec="stop"][data-id="PAC-01"]').click();
+  await expect(rec.locator('a[download^="PAC-01."]')).toBeVisible();
+  await expect(rec.locator('audio')).toHaveCount(1);
+  await expect(rec.getByRole('status').first()).toContainText('1 of 10 lines recorded');
+  await rec.getByRole('button', { name: 'Close' }).click();
+  await expect(rec).toBeHidden();
+  await expect(page).not.toHaveURL(/#record/);
+});

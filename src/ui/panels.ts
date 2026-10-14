@@ -90,10 +90,12 @@ export function connectView(route: RouteState, last: CheckResult | null): string
             cls: `route-card ${route.selected === id ? 'is-selected' : ''}`,
             pressed: route.selected === id,
             key: `route-card:${id}`,
+            icon: '⠿',
+            data: { 'drag-card': id },
           }),
         )
         .join('')
-    : '<p class="small muted">All cards placed.</p>';
+    : '<p class="small muted tray-empty">All cards placed. Drag a card back here to remove it.</p>';
   const slots = route.slots
     .map((id, i) => {
       const label = id ? card(id).title : 'Empty';
@@ -105,6 +107,7 @@ export function connectView(route: RouteState, last: CheckResult | null): string
         aria,
         icon: String(i + 1),
         disabled: route.connected,
+        data: id && !route.connected ? { drop: String(i), 'drag-card': id } : { drop: String(i) },
       })}</li>`;
     })
     .join('<li class="slot-arrow" aria-hidden="true">→</li>');
@@ -121,9 +124,9 @@ export function connectView(route: RouteState, last: CheckResult | null): string
     ? ''
     : route.selected
       ? `<p class="small" role="status">${esc(card(route.selected).title)} selected — now choose a step.</p>`
-      : '<p class="small muted" role="status">Choose a card, then choose a step. Choose a filled step to pick its card back up.</p>';
+      : '<p class="small muted" role="status">Drag each card into its step. You can also tap a card, then tap a step.</p>';
   return `<p class="eyebrow">Cards</p>
-<div class="row tray" role="group" aria-label="Stage cards">${trayHtml}</div>
+<div class="row tray" role="group" aria-label="Stage cards" data-drop="tray">${trayHtml}</div>
 ${hint}
 <p class="eyebrow">Route — source to buildings</p>
 <ol class="slots" aria-label="Route steps">${slots}</ol>
@@ -290,6 +293,14 @@ export function settingsView(p: Preferences, webgl: boolean): string {
 <fieldset class="control"><legend>Flow overlay</legend><div class="row tight">
   ${opt('Show', 'flow', 'on', p.flow)}${opt('Hide', 'flow', 'off', !p.flow)}
 </div><p class="small muted">An explanatory graphic along the route — not the speed of electricity.</p></fieldset>
+<fieldset class="control"><legend>Narration</legend><div class="row tight">
+  ${opt('Captions on', 'captions', 'on', p.captions)}${opt('Captions off', 'captions', 'off', !p.captions)}
+</div><div class="row tight">
+  ${opt('Auto-play voice', 'auto-narrate', 'on', p.autoNarrate)}${opt('Only when I press Listen', 'auto-narrate', 'off', !p.autoNarrate)}
+</div>
+<p class="small muted">For teachers: record the lesson's narration in your own voice.</p>
+  ${btn('Record narration', 'open-recorder', { cls: 'secondary', key: 'open-recorder', icon: '●' })}
+</fieldset>
 <fieldset class="control"><legend>Session</legend>
   <p class="small">Preferences are saved on this device. Lesson progress is not saved: refreshing returns to the opening screen with a fresh neighborhood.</p>
   ${btn('Clear session', 'clear-session', { cls: 'danger', key: 'clear-session' })}

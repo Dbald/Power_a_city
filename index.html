@@ -18,6 +18,10 @@
 
       <div id="stage" class="stage">
         <aside id="card" class="card-panel" aria-labelledby="card-title" hidden></aside>
+        <div id="caption-bar" class="caption-bar" role="region" aria-label="Narration" hidden>
+          <p id="caption" class="caption" aria-live="polite"></p>
+          <div id="caption-controls" class="caption-controls"></div>
+        </div>
       </div>
 
       <main id="dock" class="dock" tabindex="-1" hidden></main>
@@ -32,6 +36,7 @@
     </div>
 
     <dialog id="settings" class="dialog" aria-labelledby="settings-title"></dialog>
+    <div id="recorder" class="guide-overlay" role="dialog" aria-modal="true" aria-label="Record narration" hidden></div>
 
     <section id="boot-error" class="boot-error" role="alert" hidden>
       <div class="boot-error-box">

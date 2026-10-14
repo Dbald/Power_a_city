@@ -62,6 +62,28 @@ export function placeInSlot(state: RouteState, slot: number): RouteState {
   return { ...state, slots, selected: null };
 }
 
+/**
+ * Drag and drop (pointer only; the select-card/select-slot path stays for
+ * keyboard and switch users). Dropping on a step places the card there:
+ * a card dragged from another step swaps with whatever is in the target,
+ * a card from the tray sends the target's card back to the tray.
+ * Dropping on the tray (`to === null`) returns the card to the tray.
+ */
+export function dropCard(state: RouteState, id: StageId, to: number | null): RouteState {
+  if (state.connected) return state;
+  const slots = [...state.slots];
+  const from = slots.indexOf(id);
+  if (to === null) {
+    if (from !== -1) slots[from] = null;
+    return { ...state, slots, selected: null };
+  }
+  if (to < 0 || to >= slots.length) return state;
+  const occupant = slots[to];
+  slots[to] = id;
+  if (from !== -1 && from !== to) slots[from] = occupant;
+  return { ...state, slots, selected: null };
+}
+
 export function clearSlot(state: RouteState, slot: number): RouteState {
   if (state.connected) return state;
   const slots = [...state.slots];

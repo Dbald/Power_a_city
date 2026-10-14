@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CARD_ORDER, ROUTE_ORDER, checkRoute, connectedPrefix, initialRoute, placeInSlot, selectCard, submitRoute, trayCards } from '../../src/model/route.ts';
+import { CARD_ORDER, ROUTE_ORDER, checkRoute, connectedPrefix, dropCard, initialRoute, placeInSlot, selectCard, submitRoute, trayCards } from '../../src/model/route.ts';
 import { routeFeedback } from '../../src/content/feedback.ts';
 import { validateContent } from '../../src/content/validate.ts';
 
@@ -64,6 +64,45 @@ describe('connection exercise (PC-03)', () => {
   it('lights the route only up to the first gap', () => {
     expect(connectedPrefix(['generation', 'transmission', null, 'distribution', 'buildings'])).toBe(2);
     expect(connectedPrefix(ROUTE_ORDER)).toBe(5);
+  });
+});
+
+describe('drag and drop', () => {
+  it('drops a tray card into an empty step', () => {
+    const s = dropCard(initialRoute(), 'generation', 0);
+    expect(s.slots[0]).toBe('generation');
+    expect(trayCards(s)).not.toContain('generation');
+  });
+
+  it('a tray card dropped on a filled step sends the old card back to the tray', () => {
+    let s = dropCard(initialRoute(), 'substation', 0);
+    s = dropCard(s, 'generation', 0);
+    expect(s.slots[0]).toBe('generation');
+    expect(trayCards(s)).toContain('substation');
+  });
+
+  it('dragging between steps swaps the two cards', () => {
+    let s = dropCard(initialRoute(), 'substation', 1);
+    s = dropCard(s, 'transmission', 2);
+    s = dropCard(s, 'transmission', 1);
+    expect(s.slots.slice(0, 3)).toEqual([null, 'transmission', 'substation']);
+  });
+
+  it('dropping on the tray removes the card from its step', () => {
+    const s = dropCard(dropCard(initialRoute(), 'buildings', 4), 'buildings', null);
+    expect(s.slots).toEqual([null, null, null, null, null]);
+  });
+
+  it('a full drag-built route checks the same as a tapped one', () => {
+    const s = ROUTE_ORDER.reduce((acc, id, i) => dropCard(acc, id, i), initialRoute());
+    expect(submitRoute(s).result.correct).toBe(true);
+  });
+
+  it('ignores drops once connected or out of range', () => {
+    const connected = submitRoute(ROUTE_ORDER.reduce((acc, id, i) => dropCard(acc, id, i), initialRoute())).state;
+    expect(dropCard(connected, 'generation', 3)).toEqual(connected);
+    const s = initialRoute();
+    expect(dropCard(s, 'generation', 9)).toEqual(s);
   });
 });
 

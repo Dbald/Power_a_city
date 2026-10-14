@@ -12,10 +12,14 @@ export interface Preferences {
   presentation: '3d' | '2d';
   reducedMotion: boolean;
   flow: boolean;
+  /** Captions are on by default for classroom use (PRD §10). */
+  captions: boolean;
+  /** Narration starts by itself when a step or card opens (always after a click). */
+  autoNarrate: boolean;
 }
 
 export function defaultPreferences(reducedMotion: boolean): Preferences {
-  return { textScale: 1, presentation: '3d', reducedMotion, flow: true };
+  return { textScale: 1, presentation: '3d', reducedMotion, flow: true, captions: true, autoNarrate: true };
 }
 
 export function loadPreferences(reducedMotion: boolean): Preferences {
@@ -29,6 +33,8 @@ export function loadPreferences(reducedMotion: boolean): Preferences {
       presentation: stored.presentation === '2d' ? '2d' : '3d',
       reducedMotion: typeof stored.reducedMotion === 'boolean' ? stored.reducedMotion : base.reducedMotion,
       flow: typeof stored.flow === 'boolean' ? stored.flow : base.flow,
+      captions: typeof stored.captions === 'boolean' ? stored.captions : base.captions,
+      autoNarrate: typeof stored.autoNarrate === 'boolean' ? stored.autoNarrate : base.autoNarrate,
     };
   } catch {
     return base;

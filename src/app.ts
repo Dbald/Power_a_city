@@ -3,13 +3,16 @@
  * Holds app state, renders panels, and tells the active view what to show.
  * All numbers come from the pure GridModel; the views only display them.
  */
-import { CARDS } from './content/cards.ts';
-import { SLICE_STEPS } from './content/lesson.ts';
+import { Narrator, type NarrationState } from './audio/narrator.ts';
+import { CARDS, card } from './content/cards.ts';
+import { recordedAudioFor } from './content/recordings.ts';
+import { MEDIA, SLICE_STEPS } from './content/lesson.ts';
 import type { InfrastructureId } from './content/types.ts';
 import {
   BATTERY_CAPACITY,
   GENERATOR_MAX,
   GENERATOR_MIN,
+  challengeStatus,
   initialScenario,
   runInterval,
   validateSettings,
@@ -26,6 +29,7 @@ import {
   initialRoute,
   placeInSlot,
   selectCard,
+  dropCard,
   submitRoute,
   trayCards,
   type CheckResult,
@@ -36,6 +40,7 @@ import { CityScene, webglAvailable } from './scene/CityScene.ts';
 import { FlatScene } from './scene/FlatScene.ts';
 import { BOOKMARK_FOR, SELECTABLE, type CityView, type ViewState } from './scene/view.ts';
 import { clearAll, defaultPreferences, loadPreferences, savePreferences, type Preferences } from './store.ts';
+import { enableDrag } from './ui/drag.ts';
 import { cardView, connectView, entryView, experimentExtras, modelPanel, narrationDetails, routeStepView, settingsView, stepHeader, unitsIntro } from './ui/panels.ts';
 
 type Screen = 'entry' | 'learn' | 'explore';
@@ -65,10 +70,31 @@ export class App {
   private webgl = webglAvailable();
   private view: CityView | null = null;
   private notice = '';
+  private narrator: Narrator;
+  private narrationState: NarrationState = 'idle';
+  private caption: string | null = null;
+  private muted = false;
+  /** The narration line that belongs to what's on screen; a change stops the old line (no overlapping voices). */
+  private contextNarration: string | null = null;
+  private lastContextWasCard = false;
+  private recorder: { open(): void; close(): void; isOpen: boolean } | null = null;
 
   constructor() {
     this.systemReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
     this.prefs = loadPreferences(this.systemReducedMotion);
+    this.narrator = new Narrator(
+      {
+        onCaption: (text) => {
+          this.caption = text;
+          this.renderCaptions();
+        },
+        onState: (s) => {
+          this.narrationState = s;
+          this.renderCaptions();
+        },
+      },
+      recordedAudioFor,
+    );
   }
 
   init() {
@@ -76,12 +102,100 @@ export class App {
     this.mountView();
     document.addEventListener('click', (e) => this.onClick(e));
     document.addEventListener('input', (e) => this.onInput(e));
+    enableDrag((cardId, to) => {
+      if (this.screen !== 'learn' || this.step !== 1) return;
+      this.route = dropCard(this.route, cardId as StageId, to === 'tray' ? null : to);
+      this.lastCheck = null;
+      this.render();
+    });
     document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && this.recorder?.isOpen) return this.recorder.close();
       if (e.key === 'Escape' && this.selected && !$<HTMLDialogElement>('settings').open) this.closeCard();
+    });
+    window.addEventListener('hashchange', () => {
+      if (location.hash === '#record') void this.openRecorder();
     });
     $<HTMLDialogElement>('settings').addEventListener('close', () => this.render());
     this.render();
     document.documentElement.setAttribute('data-booted', '1');
+    if (location.hash === '#record') void this.openRecorder();
+  }
+
+  /** The recording page loads on demand, so it adds nothing to the lesson's own download. */
+  private async openRecorder() {
+    this.narrator.skip();
+    if (!this.recorder) {
+      const { Recorder } = await import('./ui/recorder.ts');
+      this.recorder = new Recorder($('recorder'), () => {
+        if (location.hash === '#record') history.replaceState(null, '', location.pathname + location.search);
+      });
+    }
+    this.recorder.open();
+  }
+
+  // ── Narration ────────────────────────────────────────────────────────────
+
+  /** Which line belongs to what is on screen right now. */
+  private narrationForContext(): string | null {
+    if (this.screen === 'entry') return null;
+    if (this.selected) return card(this.selected).narrationId ?? null;
+    if (this.screen !== 'learn') return null;
+    if (this.step === 0) return 'PAC-01';
+    if (this.step === 1) return 'PAC-10';
+    if (!this.unitsIntroDone) return 'PAC-07';
+    return challengeStatus(this.scenario, '').eveningServed ? 'PAC-09' : 'PAC-08';
+  }
+
+  private playNarration(id: string) {
+    const m = MEDIA.find((x) => x.id === id);
+    if (m) this.narrator.play(m.id, m.transcript);
+  }
+
+  /**
+   * Called on every render. When the context changes, the old line stops
+   * (PRD §9: playback stops when leaving the step). The new line plays by
+   * itself if auto-narration is on — except when a card closes, so closing a
+   * card doesn't repeat the step's line.
+   */
+  private syncNarration() {
+    const next = this.narrationForContext();
+    if (next === this.contextNarration) return;
+    const closingCard = this.contextNarration !== null && !this.selected && this.lastContextWasCard;
+    this.contextNarration = next;
+    this.lastContextWasCard = !!this.selected;
+    this.narrator.skip();
+    if (next && this.prefs.autoNarrate && !closingCard) this.playNarration(next);
+  }
+
+  private renderCaptions() {
+    const bar = $('caption-bar');
+    const id = this.narrationForContext();
+    const active = this.narrationState !== 'idle';
+    bar.hidden = this.screen === 'entry' || (!id && !active);
+    $('stage').classList.toggle('has-captions', !bar.hidden);
+    if (bar.hidden) return;
+    const m = MEDIA.find((x) => x.id === (active ? this.narrator.currentId : id));
+    const caption = $('caption');
+    if (active && this.prefs.captions) {
+      caption.textContent = this.caption ?? '';
+      caption.classList.remove('is-idle');
+    } else {
+      caption.textContent = active ? 'Narration playing (captions off)' : m ? `Narration: ${m.segment}` : '';
+      caption.classList.add('is-idle');
+    }
+    const toggle =
+      this.narrationState === 'playing'
+        ? ['❚❚', 'Pause narration']
+        : this.narrationState === 'paused'
+          ? ['▶', 'Resume narration']
+          : ['▶', 'Listen'];
+    this.patch(
+      $('caption-controls'),
+      `<button type="button" class="btn small-btn ${active ? 'secondary' : 'primary'}" data-action="narr-toggle" data-key="narr-toggle" aria-label="${toggle[1]}"><span aria-hidden="true">${toggle[0]}</span>${active ? '' : '<span> Listen</span>'}</button>
+<button type="button" class="btn small-btn ghost" data-action="narr-replay" data-key="narr-replay" aria-label="Replay narration" ${id || active ? '' : 'disabled'}><span aria-hidden="true">↺</span></button>
+<button type="button" class="btn small-btn ghost" data-action="narr-stop" data-key="narr-stop" aria-label="Stop narration" ${active ? '' : 'disabled'}><span aria-hidden="true">■</span></button>
+<button type="button" class="btn small-btn ghost" data-action="narr-mute" data-key="narr-mute" aria-pressed="${this.muted}" aria-label="Mute voice"><span aria-hidden="true">${this.muted ? '🔇' : '🔊'}</span></button>`,
+    );
   }
 
   // ── View lifecycle ───────────────────────────────────────────────────────
@@ -366,6 +480,37 @@ export class App {
         this.notice = 'Session cleared.';
         focus = 'start-learn';
         break;
+      case 'narr-toggle': {
+        if (this.narrationState === 'playing') this.narrator.pause();
+        else if (this.narrationState === 'paused') this.narrator.resume();
+        else {
+          const id = this.narrationForContext();
+          if (id) this.playNarration(id);
+        }
+        return;
+      }
+      case 'narr-replay': {
+        const id = this.narrator.currentId ?? this.narrationForContext();
+        if (id) this.playNarration(id);
+        return;
+      }
+      case 'narr-stop':
+        this.narrator.skip();
+        return;
+      case 'narr-mute':
+        this.muted = !this.muted;
+        this.narrator.setMuted(this.muted);
+        return this.renderCaptions();
+      case 'captions':
+        this.updatePrefs({ captions: arg === 'on' });
+        return this.renderCaptions();
+      case 'auto-narrate':
+        this.updatePrefs({ autoNarrate: arg === 'on' });
+        return;
+      case 'open-recorder':
+        $<HTMLDialogElement>('settings').close();
+        void this.openRecorder();
+        return;
       case 'dismiss-notice':
         this.notice = '';
         break;
@@ -438,6 +583,8 @@ export class App {
     if (inLesson) this.patch(dock, this.screen === 'learn' ? this.learnDock() : this.exploreDock());
     $('app').classList.toggle('has-dock', inLesson);
     this.syncView();
+    this.syncNarration();
+    this.renderCaptions();
   }
 
   private experimentInput(guided: boolean) {
