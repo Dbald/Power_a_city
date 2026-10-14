@@ -15,7 +15,7 @@ This is the PRD's first coding task (§13): placeholder geometry, the five-stage
 | Guided slice | Explore the route → Connect → Experiment, with Back/Next and restart |
 | Infrastructure cards (PC-02) | 7 cards (5 stages plus solar and battery). Each has sources and is marked *draft*. |
 | Connection exercise (PC-03) | Select a card, then select a slot; no dragging. Wrong orders get explanations and a retry. |
-| Experiment (PC-06/07) | Mission tracker (charge by day → light the evening → explain) with a next-move hint; separate settings, preview and Run; cause-based feedback. Fits the panel without scrolling down to 1366×768. |
+| Experiment (PC-06/07) | Opens with a "Two kinds of numbers" card that explains PU (power, like water from a tap) and EU (stored energy, like water in a bucket) before any number appears; the explainer stays one click away. Mission tracker (charge by day → light the evening → explain) with a next-move hint; separate settings, preview and Run; cause-based feedback. Fits the panel without scrolling down to 1366×768. |
 | 3D scene | three.js placeholder neighborhood with camera bookmarks, picking, limited orbit in Explore, and Reset view |
 | 2D presentation (PC-11) | SVG map driven by the same `ViewState` and model. Used automatically when WebGL is missing or fails. |
 | Preferences (PC-12) | Text size, 2D/3D, reduced motion, and flow overlay. Saved locally. Clear session. |

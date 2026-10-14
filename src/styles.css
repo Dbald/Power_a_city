@@ -88,8 +88,9 @@ a { color: #9fd0ff; }
 .stage canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; touch-action: none; }
 .dock { background: var(--panel); border-left: 4px solid var(--accent); display: flex; flex-direction: column; min-height: 0; outline: none; }
 .dock-body { flex: 1; overflow-y: auto; padding: 0.5em 1em 0.6em; overscroll-behavior: contain; }
-.dock-nav { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gap); padding: 0.6em 1em; border-top: 2px solid var(--panel-3); }
-.nav-extras { margin-left: auto; display: flex; flex-wrap: wrap; gap: 0.2em 0.9em; font-size: 0.8em; }
+.dock-nav { display: flex; flex-wrap: nowrap; align-items: center; gap: var(--gap); padding: 0.6em 1em; border-top: 2px solid var(--panel-3); }
+.nav-extras { margin-left: auto; min-width: 0; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0 0.8em; font-size: 0.8em; }
+.nav-extras summary { min-height: 40px; white-space: nowrap; }
 .pop { position: relative; margin: 0; }
 .pop > summary { color: var(--ink-soft); }
 .pop[open] > summary { color: var(--ink); }
@@ -174,6 +175,19 @@ a { color: #9fd0ff; }
 .feedback ul { margin: 0.3em 0 0; padding-left: 1.2em; }
 .feedback.good { background: var(--good-bg); border-left: 6px solid var(--good); }
 .feedback.retry { background: var(--retry-bg); border-left: 6px solid var(--retry); }
+
+/* ── Units explainer (PU / EU) ───────────────────────────────────────── */
+.units-intro h3 { font-size: 1.2em; margin: 0.3em 0 0.2em; outline: none; }
+.unit-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5em; margin: 0.4em 0; }
+.unit-tile { background: var(--panel-2); border: 2px solid var(--line); border-radius: 12px; padding: 0.5em 0.7em; }
+.unit-tile p { margin: 0 0 0.3em; }
+.unit-tile p:last-child { margin: 0; }
+.unit-name { font-size: 1.05em; }
+.unit-name strong { color: var(--accent); }
+.unit-analogy { font-style: italic; color: var(--ink-soft); }
+.unit-link { background: var(--panel-2); border-left: 6px solid var(--accent); border-radius: 8px; padding: 0.4em 0.7em; }
+.teacher-tip { color: var(--ink-soft); }
+.pop-body .unit-pair { grid-template-columns: 1fr; font-size: 0.9em; }
 
 /* ── Model panel: fits the dock without scrolling on the classroom board ─ */
 .mission { background: var(--panel-2); border: 2px solid var(--line); border-radius: 12px; padding: 0.4em 0.6em; margin: 0.25em 0 0.35em; }

@@ -5,6 +5,7 @@
 import { CARDS } from './cards.ts';
 import { MEDIA } from './lesson.ts';
 import { SOURCES } from './sources.ts';
+import { UNITS } from './units.ts';
 import type { Review } from './types.ts';
 
 function reviewProblems(label: string, review: Review, release: boolean): string[] {
@@ -26,6 +27,8 @@ export function validateContent(release = false): string[] {
     if (!c.accessibleDescription.trim()) problems.push(`${c.id}: missing accessible description.`);
     problems.push(...reviewProblems(`card ${c.id}`, c.review, release));
   }
+  for (const s of UNITS.sources) if (!sourceIds.has(s)) problems.push(`units: unknown source ${s}.`);
+  problems.push(...reviewProblems('units explainer', UNITS.review, release));
   for (const m of MEDIA) {
     if (!m.transcript.trim()) problems.push(`${m.id}: missing transcript.`);
     problems.push(...reviewProblems(`media ${m.id}`, m.review, release));

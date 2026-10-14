@@ -38,7 +38,7 @@ export const GLOSSARY: GlossaryTerm[] = [
   { term: 'Storage', definition: 'Saving energy, for example in a battery, to use later.' },
   {
     term: 'Power and energy',
-    definition: 'Power is how fast electricity is being supplied or used (PU). Energy is the amount stored or used over time (EU).',
+    definition: 'Power is how much electricity is flowing right now, like water from a tap (PU, power units). Energy is how much has been stored or used over time, like water in a bucket (EU, energy units).',
   },
 ];
 
@@ -56,7 +56,7 @@ export const MEDIA: MediaAsset[] = [
   slot('PAC-04', 'Substation', 'Explain the change in voltage for delivery stages', '15–20 s', 'route', 'At the substation, transformers lower the voltage so electricity can move onto local lines.'),
   slot('PAC-05', 'Distribution and buildings', 'Link local lines to everyday uses', '15–20 s', 'route', 'Local lines run along the street to homes, the school, shops and streetlights.'),
   slot('PAC-06', 'Prediction', 'Ask what changes at evening', '10–15 s', 'predict', 'The sun is setting. What do you think will change in the neighborhood?'),
-  slot('PAC-07', 'Storage', 'Distinguish stored energy from generation', '20–25 s', 'experiment', 'A battery does not make electricity. It stores energy when there is extra and gives it back later — until it runs out.'),
+  slot('PAC-07', 'Storage', 'Distinguish stored energy from generation', '20–25 s', 'experiment', 'Two kinds of numbers. Power units tell how much electricity is flowing right now, like water from a tap. Energy units tell how much is saved in the battery, like water in a bucket. A battery does not make electricity — it saves energy when there is extra and gives it back later, until it runs out.'),
   slot('PAC-08', 'Experiment directions', 'Explain settings, preview, and one interval', '20–30 s', 'experiment', 'Choose your settings and look at the preview. When you are ready, press Run one interval to see one model hour happen.'),
   slot('PAC-09', 'Reflection', 'Ask for a claim supported by an observation', '15–20 s', 'explain', 'What did you change to keep the lights on, and what did you see that shows it worked?'),
 ];

@@ -8,6 +8,17 @@ async function expectNoDockScroll(page: Page) {
   expect(overflow).toBeLessThanOrEqual(1);
 }
 
+/** The experiment opens by explaining PU and EU before any number appears. */
+async function passUnitsIntro(page: Page) {
+  const d = dock(page);
+  await expect(d.getByRole('heading', { name: 'Two kinds of numbers' })).toBeVisible();
+  await expect(d).toContainText('PU = power units');
+  await expect(d).toContainText('EU = energy units');
+  await expect(d.locator('.readout')).toHaveCount(0); // controls wait until the units are introduced
+  await expectNoDockScroll(page);
+  await d.getByRole('button', { name: 'Got it — start the experiment' }).click();
+}
+
 async function inspectAllStages(page: Page) {
   for (const name of ['Generation', 'Transmission', 'Substation', 'Distribution', 'Buildings']) {
     await dock(page).getByRole('button', { name: new RegExp(`^${name}`) }).click();
@@ -78,6 +89,7 @@ test('guided slice: inspect, connect, experiment (3D)', async ({ page }) => {
   await connectRoute(page);
   await dock(page).getByRole('button', { name: 'Next →' }).click();
   await expectNoDockScroll(page);
+  await passUnitsIntro(page);
   await runChallenge(page);
   await expectNoDockScroll(page);
 
@@ -113,6 +125,7 @@ test('the same lesson works in the 2D presentation with keyboard only', async ({
   await dock(page).getByRole('button', { name: 'Check route' }).press('Enter');
   await expect(dock(page).locator('.feedback.good')).toBeVisible();
   await dock(page).getByRole('button', { name: 'Next →' }).press('Enter');
+  await passUnitsIntro(page);
   await runChallenge(page);
   await expect(page.locator('.flat-frame svg')).toHaveAttribute('data-supply', 'short');
 });
@@ -146,6 +159,7 @@ test.describe('short laptop screen', () => {
     await dock(page).getByRole('button', { name: 'Check route' }).click();
     await dock(page).getByRole('button', { name: 'Next →' }).click();
     await expectNoDockScroll(page);
+    await passUnitsIntro(page);
     await runChallenge(page);
     await expectNoDockScroll(page);
   });

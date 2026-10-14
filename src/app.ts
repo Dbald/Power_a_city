@@ -36,7 +36,7 @@ import { CityScene, webglAvailable } from './scene/CityScene.ts';
 import { FlatScene } from './scene/FlatScene.ts';
 import { BOOKMARK_FOR, SELECTABLE, type CityView, type ViewState } from './scene/view.ts';
 import { clearAll, defaultPreferences, loadPreferences, savePreferences, type Preferences } from './store.ts';
-import { cardView, connectView, entryView, experimentExtras, modelPanel, narrationDetails, routeStepView, settingsView, stepHeader } from './ui/panels.ts';
+import { cardView, connectView, entryView, experimentExtras, modelPanel, narrationDetails, routeStepView, settingsView, stepHeader, unitsIntro } from './ui/panels.ts';
 
 type Screen = 'entry' | 'learn' | 'explore';
 
@@ -56,6 +56,8 @@ export class App {
   private lastResult: IntervalResult | null = null;
   private explanation = '';
   private explanationSubmitted = false;
+  /** Learners meet PU and EU once per lesson, before the experiment controls appear. */
+  private unitsIntroDone = false;
   private runError: string | null = null;
   private selected: InfrastructureId | null = null;
   private prefs: Preferences;
@@ -151,6 +153,7 @@ export class App {
   private start(screen: 'learn' | 'explore') {
     this.screen = screen;
     this.step = 0;
+    this.unitsIntroDone = false;
     this.visited = [];
     this.route = screen === 'explore' ? connectedRoute() : initialRoute();
     this.lastCheck = null;
@@ -261,6 +264,10 @@ export class App {
         this.selected = null;
         this.view?.setSelected(null);
         this.view?.frame('overview');
+        focus = 'instruction';
+        break;
+      case 'units-done':
+        this.unitsIntroDone = true;
         focus = 'instruction';
         break;
       case 'restart':
@@ -451,7 +458,10 @@ export class App {
     let extras = narrationDetails(this.step);
     if (this.step === 0) body = routeStepView(this.visited);
     else if (this.step === 1) body = connectView(this.route, this.lastCheck);
-    else {
+    else if (!this.unitsIntroDone) {
+      body = unitsIntro();
+      extras = narrationDetails(this.step, 'PAC-07');
+    } else {
       body = modelPanel(this.experimentInput(true));
       extras += experimentExtras(this.experimentInput(true));
     }
@@ -473,7 +483,7 @@ export class App {
   private exploreDock(): string {
     return `<div class="dock-body">
   <div class="step-row"><h2 class="instruction" tabindex="-1" data-key="instruction">Explore the neighborhood</h2><span class="step-meta">Explore · no score</span></div>
-  <p class="small">Select any part to learn about it. Drag to look around.</p>
+  <p class="small">Select any part to learn about it. Drag to look around. New to PU and EU? Open <strong>What are PU &amp; EU?</strong> below.</p>
   ${modelPanel(this.experimentInput(false))}
 </div>
 <nav class="dock-nav" aria-label="Explore navigation">

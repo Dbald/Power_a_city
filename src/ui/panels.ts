@@ -5,8 +5,9 @@
 import { card } from '../content/cards.ts';
 import { MODEL_LIMITS, intervalFeedback, routeFeedback } from '../content/feedback.ts';
 import { coach, type Mission } from '../content/coach.ts';
-import { GLOSSARY, MEDIA, OBJECTIVE, SLICE_STEPS } from '../content/lesson.ts';
+import { MEDIA, OBJECTIVE, SLICE_STEPS } from '../content/lesson.ts';
 import { SOURCES } from '../content/sources.ts';
+import { UNITS } from '../content/units.ts';
 import type { InfrastructureId } from '../content/types.ts';
 import {
   BATTERY_CAPACITY,
@@ -62,10 +63,10 @@ export function stepHeader(step: number): string {
 }
 
 /** Teacher-facing draft narration, kept folded away at the foot of the panel. */
-export function narrationDetails(step: number): string {
-  const id = SLICE_STEPS[step].narrationId;
+export function narrationDetails(step: number, override?: string): string {
+  const id = override ?? SLICE_STEPS[step].narrationId;
   const n = id ? MEDIA.find((m) => m.id === id) : undefined;
-  return n ? `<details class="pop"><summary>Script ${esc(n.id)}</summary><div class="pop-body"><p class="script-text">${esc(n.transcript)}</p><p class="small muted">Draft narration — not recorded yet.</p></div></details>` : '';
+  return n ? `<details class="pop"><summary>Script</summary><div class="pop-body"><p class="eyebrow">Narration ${esc(n.id)}</p><p class="script-text">${esc(n.transcript)}</p><p class="small muted">Draft narration — not recorded yet.</p></div></details>` : '';
 }
 
 export function routeStepView(visited: InfrastructureId[]): string {
@@ -214,9 +215,9 @@ export function modelPanel(m: ModelPanelInput): string {
   const fill = Math.round((100 * m.scenario.stored) / BATTERY_CAPACITY);
   const readout = `<div class="readout">
   <div class="stats" aria-label="Neighborhood status">
-    <div class="stat"><span class="stat-label">Supply</span><span class="stat-value">${p.available} PU</span><span class="stat-note">plant ${p.generator} + sun ${p.solar}</span></div>
-    <div class="stat"><span class="stat-label">Demand</span><span class="stat-value">${p.demand} PU</span><span class="stat-note">${evening ? 'evening' : 'daytime'}</span></div>
-    <div class="stat"><span class="stat-label">Battery</span><span class="stat-value">${m.scenario.stored} / ${BATTERY_CAPACITY} EU</span><span class="meter" aria-hidden="true"><span style="width:${fill}%"></span></span></div>
+    <div class="stat"><span class="stat-label">⚡ Power supply</span><span class="stat-value">${p.available} PU</span><span class="stat-note">plant ${p.generator} + sun ${p.solar}</span></div>
+    <div class="stat"><span class="stat-label">⚡ Power demand</span><span class="stat-value">${p.demand} PU</span><span class="stat-note">${evening ? 'evening' : 'daytime'}</span></div>
+    <div class="stat"><span class="stat-label">🔋 Stored energy</span><span class="stat-value">${m.scenario.stored} / ${BATTERY_CAPACITY} EU</span><span class="meter" aria-hidden="true"><span style="width:${fill}%"></span></span></div>
   </div>
   <p class="preview" aria-live="polite"><span class="preview-label">If you run:</span> ${p.unmet === 0 ? '<span class="badge good"><span aria-hidden="true">✓ </span>Demand met</span>' : `<span class="badge short"><span aria-hidden="true">! </span>${p.unmet} PU short</span>`} <span class="muted">· ${batteryChange(p)}${p.unused ? ` · ${p.unused} PU unused` : ''}</span></p>
 </div>`;
@@ -249,7 +250,26 @@ export function experimentExtras(m: { scenario: Scenario; connected: boolean }):
         )
         .join('')}</tbody></table></div></details>`
     : '';
-  return `${history}<details class="pop"><summary>About the model</summary><div class="pop-body"><p class="small">${esc(MODEL_LIMITS)} The battery charges or discharges at most ${BATTERY_RATE} PU per run.</p><p class="small"><strong>${esc(GLOSSARY[6].term)}:</strong> ${esc(GLOSSARY[6].definition)}</p></div></details>`;
+  return `${history}<details class="pop"><summary>What are PU &amp; EU?</summary><div class="pop-body">${unitPairs()}<p class="small">${esc(UNITS.link)}</p><p class="small muted">${esc(MODEL_LIMITS)} The battery charges or discharges at most ${BATTERY_RATE} PU per run.</p></div></details>`;
+}
+
+function unitPairs(): string {
+  const tile = (u: typeof UNITS.power) =>
+    `<div class="unit-tile"><p class="unit-name"><span aria-hidden="true">${u.icon}</span> <strong>${esc(u.abbr)}</strong> = ${esc(u.name)}</p><p>${esc(u.meaning)}</p><p class="unit-analogy">${esc(u.analogy)}</p></div>`;
+  return `<div class="unit-pair">${tile(UNITS.power)}${tile(UNITS.energy)}</div>`;
+}
+
+/** Shown once when the experiment opens: learners meet PU and EU before any number appears. */
+export function unitsIntro(): string {
+  return `<div class="units-intro">
+  <h3 tabindex="-1" data-key="units-title">${esc(UNITS.title)}</h3>
+  <p>The experiment uses two kinds of numbers. Read these first.</p>
+  ${unitPairs()}
+  <p class="unit-link"><strong>How they connect:</strong> ${esc(UNITS.link)}</p>
+  <p class="small muted"><strong>Real world:</strong> ${esc(UNITS.realWorld)}</p>
+  <p class="small teacher-tip"><span class="tag">Teacher</span> ${esc(UNITS.teacherTip)}</p>
+  ${btn('Got it — start the experiment', 'units-done', { cls: 'primary big', key: 'units-done' })}
+</div>`;
 }
 
 export function settingsView(p: Preferences, webgl: boolean): string {
