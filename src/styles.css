@@ -203,6 +203,17 @@ a { color: #9fd0ff; }
 .unit-analogy { font-style: italic; color: var(--ink-soft); }
 .unit-link { background: var(--panel-2); border-left: 6px solid var(--accent); border-radius: 8px; padding: 0.4em 0.7em; }
 .teacher-tip { color: var(--ink-soft); }
+.story { display: grid; grid-template-columns: 1fr 1fr; gap: 0.45em; margin: 0.4em 0; }
+.story-tile { background: var(--panel-2); border: 2px solid var(--line); border-radius: 12px; padding: 0.4em 0.65em; }
+.story-tile p { margin: 0; font-size: 0.9em; }
+.story-tile .story-head { font-weight: 800; color: var(--accent); font-size: 0.95em; margin-bottom: 0.15em; }
+.control-guide { margin: 0.4em 0 0.6em; display: grid; gap: 0.15em; font-size: 0.85em; }
+.control-guide div { display: flex; gap: 0.5em; }
+.control-guide dt { font-weight: 800; min-width: 5.5em; flex: none; }
+.control-guide dd { margin: 0; color: var(--ink-soft); }
+/* The control the coach's hint is about. A pulse, or a steady glow with reduced motion. */
+.is-nudge { box-shadow: 0 0 0 3px var(--accent), 0 0 16px 2px rgba(255, 201, 60, 0.75) !important; animation: nudge 1.4s ease-in-out infinite; position: relative; z-index: 1; }
+@keyframes nudge { 50% { box-shadow: 0 0 0 5px var(--accent), 0 0 26px 6px rgba(255, 201, 60, 0.45); } }
 .pop-body .unit-pair { grid-template-columns: 1fr; font-size: 0.9em; }
 
 /* ── Model panel: fits the dock without scrolling on the classroom board ─ */

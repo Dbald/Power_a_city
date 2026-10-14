@@ -5,6 +5,7 @@
 import { CARDS } from './cards.ts';
 import { MEDIA } from './lesson.ts';
 import { SOURCES } from './sources.ts';
+import { CHALLENGE } from './challenge.ts';
 import { UNITS } from './units.ts';
 import type { Review } from './types.ts';
 
@@ -29,6 +30,8 @@ export function validateContent(release = false): string[] {
   }
   for (const s of UNITS.sources) if (!sourceIds.has(s)) problems.push(`units: unknown source ${s}.`);
   problems.push(...reviewProblems('units explainer', UNITS.review, release));
+  for (const s of CHALLENGE.sources) if (!sourceIds.has(s)) problems.push(`challenge: unknown source ${s}.`);
+  problems.push(...reviewProblems('challenge briefing', CHALLENGE.review, release));
   for (const m of MEDIA) {
     if (!m.transcript.trim()) problems.push(`${m.id}: missing transcript.`);
     problems.push(...reviewProblems(`media ${m.id}`, m.review, release));

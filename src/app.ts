@@ -41,7 +41,7 @@ import { FlatScene } from './scene/FlatScene.ts';
 import { BOOKMARK_FOR, SELECTABLE, type CityView, type ViewState } from './scene/view.ts';
 import { clearAll, defaultPreferences, loadPreferences, savePreferences, type Preferences } from './store.ts';
 import { enableDrag } from './ui/drag.ts';
-import { cardView, connectView, entryView, experimentExtras, modelPanel, narrationDetails, routeStepView, settingsView, stepHeader, unitsIntro } from './ui/panels.ts';
+import { cardView, challengeBriefing, connectView, entryView, experimentExtras, modelPanel, narrationDetails, routeStepView, settingsView, stepHeader, unitsIntro } from './ui/panels.ts';
 
 type Screen = 'entry' | 'learn' | 'explore';
 
@@ -61,8 +61,8 @@ export class App {
   private lastResult: IntervalResult | null = null;
   private explanation = '';
   private explanationSubmitted = false;
-  /** Learners meet PU and EU once per lesson, before the experiment controls appear. */
-  private unitsIntroDone = false;
+  /** The experiment opens with two short cards, once per lesson: PU/EU, then the challenge story. */
+  private experimentIntro: 'units' | 'challenge' | 'done' = 'units';
   private runError: string | null = null;
   private selected: InfrastructureId | null = null;
   private prefs: Preferences;
@@ -142,8 +142,11 @@ export class App {
     if (this.screen !== 'learn') return null;
     if (this.step === 0) return 'PAC-01';
     if (this.step === 1) return 'PAC-10';
-    if (!this.unitsIntroDone) return 'PAC-07';
-    return challengeStatus(this.scenario, '').eveningServed ? 'PAC-09' : 'PAC-08';
+    if (this.experimentIntro === 'units') return 'PAC-07';
+    if (this.experimentIntro === 'challenge') return 'PAC-08';
+    // Narration follows the challenge: daytime directions, evening directions, then reflection.
+    const st = challengeStatus(this.scenario, '');
+    return st.eveningServed ? 'PAC-09' : st.dayPrepared ? 'PAC-13' : 'PAC-14';
   }
 
   private playNarration(id: string) {
@@ -267,7 +270,7 @@ export class App {
   private start(screen: 'learn' | 'explore') {
     this.screen = screen;
     this.step = 0;
-    this.unitsIntroDone = false;
+    this.experimentIntro = 'units';
     this.visited = [];
     this.route = screen === 'explore' ? connectedRoute() : initialRoute();
     this.lastCheck = null;
@@ -381,7 +384,11 @@ export class App {
         focus = 'instruction';
         break;
       case 'units-done':
-        this.unitsIntroDone = true;
+        this.experimentIntro = 'challenge';
+        focus = 'briefing-title';
+        break;
+      case 'challenge-start':
+        this.experimentIntro = 'done';
         focus = 'instruction';
         break;
       case 'restart':
@@ -605,12 +612,15 @@ export class App {
     let extras = narrationDetails(this.step);
     if (this.step === 0) body = routeStepView(this.visited);
     else if (this.step === 1) body = connectView(this.route, this.lastCheck);
-    else if (!this.unitsIntroDone) {
+    else if (this.experimentIntro === 'units') {
       body = unitsIntro();
       extras = narrationDetails(this.step, 'PAC-07');
+    } else if (this.experimentIntro === 'challenge') {
+      body = challengeBriefing();
+      extras = narrationDetails(this.step, 'PAC-08') + experimentExtras(this.experimentInput(true));
     } else {
       body = modelPanel(this.experimentInput(true));
-      extras += experimentExtras(this.experimentInput(true));
+      extras = narrationDetails(this.step, this.narrationForContext() ?? undefined) + experimentExtras(this.experimentInput(true));
     }
     const nextBlocked = this.step === 1 && !this.connected();
     const last = this.step === SLICE_STEPS.length - 1;

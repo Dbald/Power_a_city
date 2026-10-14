@@ -4,6 +4,7 @@
  */
 import { card } from '../content/cards.ts';
 import { MODEL_LIMITS, intervalFeedback, routeFeedback } from '../content/feedback.ts';
+import { CHALLENGE } from '../content/challenge.ts';
 import { coach, type Mission } from '../content/coach.ts';
 import { MEDIA, OBJECTIVE, SLICE_STEPS } from '../content/lesson.ts';
 import { SOURCES } from '../content/sources.ts';
@@ -176,7 +177,7 @@ function missionBar(m: ModelPanelInput): string {
     st.eveningServed && !m.explanationSubmitted
       ? `<label for="explanation" class="coach"><span class="sr-only">Your explanation: </span><span aria-hidden="true">→ </span>${esc(c.hint)}</label>
 <div class="explain-row">
-  <textarea id="explanation" rows="2" placeholder="I changed… and I saw…" data-input="explanation" data-key="explanation">${esc(m.explanation)}</textarea>
+  <textarea id="explanation" class="is-nudge" rows="2" placeholder="I changed… and I saw…" data-input="explanation" data-key="explanation">${esc(m.explanation)}</textarea>
   ${btn('Submit', 'submit-explanation', { cls: 'secondary', key: 'submit-explanation', aria: 'Submit explanation' })}
 </div>`
       : '';
@@ -199,7 +200,11 @@ export function modelPanel(m: ModelPanelInput): string {
   const s = m.settings;
   const p = preview(m.scenario, s);
   const evening = s.period === 'evening';
-  const seg = (label: string, action: string, arg: string, pressed: boolean) => btn(label, action, { arg, pressed, cls: pressed ? 'is-selected' : '', key: `${action}:${arg}` });
+  // In the guided challenge, the control the hint talks about glows.
+  const target = m.guided ? coach(m.scenario, s, m.explanationSubmitted, m.explanation).target : undefined;
+  const nudge = (key: string) => (key === target ? ' is-nudge' : '');
+  const seg = (label: string, action: string, arg: string, pressed: boolean) =>
+    btn(label, action, { arg, pressed, cls: `${pressed ? 'is-selected' : ''}${nudge(`${action}:${arg}`)}`, key: `${action}:${arg}` });
 
   const controls = `<div class="controls">
   <span class="ctl-label" id="lbl-time">Time</span>
@@ -208,7 +213,7 @@ export function modelPanel(m: ModelPanelInput): string {
   <div class="row tight slider-row">
     ${btn('Less', 'gen-dec', { cls: 'icon-btn', icon: '−', aria: 'Decrease generator output', key: 'gen-dec', disabled: s.generator <= GENERATOR_MIN })}
     <input id="generator" type="range" min="${GENERATOR_MIN}" max="${GENERATOR_MAX}" step="1" value="${s.generator}" data-input="generator" data-key="generator" aria-valuetext="${s.generator} power units">
-    ${btn('More', 'gen-inc', { cls: 'icon-btn', icon: '+', aria: 'Increase generator output', key: 'gen-inc', disabled: s.generator >= GENERATOR_MAX })}
+    ${btn('More', 'gen-inc', { cls: `icon-btn${nudge('gen-inc')}`, icon: '+', aria: 'Increase generator output', key: 'gen-inc', disabled: s.generator >= GENERATOR_MAX })}
     <output for="generator" class="big-num">${s.generator} PU</output>
   </div>
   <span class="ctl-label" id="lbl-battery">Battery</span>
@@ -236,7 +241,7 @@ ${controls}
 ${readout}
 ${m.error ? `<p class="result retry" role="alert">${esc(m.error)}</p>` : ''}
 <div class="row run-row">
-  ${btn('Run one interval', 'run', { cls: 'primary big', key: 'run' })}
+  ${btn('Run one interval', 'run', { cls: `primary big${nudge('run')}`, key: 'run' })}
   ${btn('Reset', 'reset-experiment', { cls: 'secondary', key: 'reset-experiment', aria: 'Reset experiment' })}
 </div>
 ${lastHtml}`;
@@ -272,6 +277,20 @@ export function unitsIntro(): string {
   <p class="small muted"><strong>Real world:</strong> ${esc(UNITS.realWorld)}</p>
   <p class="small teacher-tip"><span class="tag">Teacher</span> ${esc(UNITS.teacherTip)}</p>
   ${btn('Got it — start the experiment', 'units-done', { cls: 'primary big', key: 'units-done' })}
+</div>`;
+}
+
+/** Shown after the units card: the story of the challenge, the goal, and what each control does. */
+export function challengeBriefing(): string {
+  return `<div class="units-intro briefing">
+  <h3 tabindex="-1" data-key="briefing-title">${esc(CHALLENGE.title)}</h3>
+  <div class="story">${CHALLENGE.story
+    .map((x) => `<div class="story-tile"><p class="story-head"><span aria-hidden="true">${x.icon}</span> ${esc(x.heading)}</p><p>${esc(x.text)}</p></div>`)
+    .join('')}</div>
+  <p class="unit-link"><strong>Your goal:</strong> ${esc(CHALLENGE.goal)}</p>
+  <dl class="control-guide">${CHALLENGE.controls.map((c) => `<div><dt>${esc(c.name)}</dt><dd>${esc(c.does)}</dd></div>`).join('')}</dl>
+  ${btn('Start the challenge', 'challenge-start', { cls: 'primary big', key: 'challenge-start' })}
+  <p class="small muted">Stuck? Follow the yellow hint — the control it means will glow.</p>
 </div>`;
 }
 

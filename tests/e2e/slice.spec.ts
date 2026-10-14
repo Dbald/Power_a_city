@@ -17,6 +17,15 @@ async function passUnitsIntro(page: Page) {
   await expect(d.locator('.readout')).toHaveCount(0); // controls wait until the units are introduced
   await expectNoDockScroll(page);
   await d.getByRole('button', { name: 'Got it — start the experiment' }).click();
+  // Then the challenge itself is explained before any control appears.
+  await expect(d.getByRole('heading', { name: 'Your challenge' })).toBeVisible();
+  await expect(d).toContainText('solar drops to 0 PU');
+  await expect(d).toContainText('Your goal:');
+  await expect(d.locator('.readout')).toHaveCount(0);
+  await expectNoDockScroll(page);
+  await d.getByRole('button', { name: 'Start the challenge' }).click();
+  // The first hint makes the Charge button glow.
+  await expect(d.locator('.is-nudge')).toHaveAttribute('data-key', 'battery:charge');
 }
 
 async function inspectAllStages(page: Page) {
@@ -147,6 +156,9 @@ test('Explore starts connected with a clean scenario and no score', async ({ pag
   await expect(dock(page).locator('[data-key="run-result"]')).toContainText('Demand met');
   await page.locator('.hotspots').getByRole('button', { name: 'Battery' }).click();
   await expect(page.locator('#card-title')).toHaveText('Battery');
+  await expect(page.locator('#caption')).toContainText('A battery stores energy to use later');
+  await page.locator('.hotspots').getByRole('button', { name: 'Solar panels' }).click();
+  await expect(page.locator('#caption')).toContainText('Solar panels turn sunlight into electricity');
 });
 
 test.describe('short laptop screen', () => {
@@ -210,7 +222,7 @@ test('the recording page records, plays back and names files for every line', as
   await page.goto('/#record');
   const rec = page.locator('#recorder');
   await expect(rec.getByRole('heading', { name: 'Record your narration' })).toBeVisible();
-  await expect(rec.locator('.rec-line')).toHaveCount(10);
+  await expect(rec.locator('.rec-line')).toHaveCount(14);
   await expect(rec.locator('.rec-line').first()).toContainText('Flip a switch and the light comes on.');
   await rec.locator('[data-rec="record"][data-id="PAC-01"]').click();
   await expect(rec.getByText('Recording…')).toBeVisible();
@@ -218,7 +230,7 @@ test('the recording page records, plays back and names files for every line', as
   await rec.locator('[data-rec="stop"][data-id="PAC-01"]').click();
   await expect(rec.locator('a[download^="PAC-01."]')).toBeVisible();
   await expect(rec.locator('audio')).toHaveCount(1);
-  await expect(rec.getByRole('status').first()).toContainText('1 of 10 lines recorded');
+  await expect(rec.getByRole('status').first()).toContainText('1 of 14 lines recorded');
   await rec.getByRole('button', { name: 'Close' }).click();
   await expect(rec).toBeHidden();
   await expect(page).not.toHaveURL(/#record/);

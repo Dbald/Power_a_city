@@ -71,6 +71,7 @@ export const CARDS: InfrastructureCard[] = [
     role: 'Solar panels make electricity from sunlight — but only while the sun is up.',
     observe: 'Compare the panels in daytime and evening. What changes?',
     accessibleDescription: 'A small field of tilted solar panels beside the substation.',
+    narrationId: 'PAC-11',
   },
   {
     id: 'battery',
@@ -81,7 +82,7 @@ export const CARDS: InfrastructureCard[] = [
     role: 'A battery stores energy when there is extra and gives it back later. It must be charged first.',
     observe: 'Watch the stored-energy meter. A battery cannot keep supplying energy forever.',
     accessibleDescription: 'A battery storage container next to the solar panels, with a stored-energy meter.',
-    narrationId: 'PAC-07',
+    narrationId: 'PAC-12',
   },
 ];
 
